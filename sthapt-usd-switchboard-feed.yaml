@@ -1,8 +1,10 @@
 # Below is the configuration for a switchboard feed that
-# calculates the price of sthAPT in USD.
+# calculates the price of sthAPT in USD hosted at:
 #
-# It converts the USD price of thAPT from Pyth to sthAPT using the exchange
-# rate between thAPT and sthAPT.
+# https://app.switchboard.xyz/aptos/mainnet/feed/0xeb7c77987c0fcbabeac1162daad2ca6985d3222594513c13b16907c924b8cf9b
+#
+# It converts the USD price of thAPT to the USD price of sthAPT
+# using the exchange rate between thAPT and sthAPT.
 #
 # The thAPT/sthAPT exchange rate is the ratio of all staked thAPT over the
 # all issued sthAPT.
