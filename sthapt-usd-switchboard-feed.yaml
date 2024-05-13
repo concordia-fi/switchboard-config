@@ -1,0 +1,79 @@
+# Below is the configuration for a switchboard feed that
+# calculates the price of sthAPT in USD.
+#
+# It converts the USD price of thAPT from Pyth to sthAPT using the exchange
+# rate between thAPT and sthAPT.
+#
+# The thAPT/sthAPT exchange rate is the ratio of all staked thAPT over the
+# all issued sthAPT.
+tasks:
+  # Fetch the exchange rate between thAPT and sthAPT
+  # from the thala.fi taking contract.
+  - httpTask:
+      url: https://api.mainnet.aptoslabs.com/v1/view
+      method: METHOD_POST
+      headers:
+        - key: Accept
+          value: application/json
+        - key: Content-Type
+          value: application/json
+      body: '{"function":
+        "0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::thAPT_sthAPT_exchange_rate_synced",
+        "type_arguments": [], "arguments": [] }'
+  # The function above returns a vector with two elements:
+  # - The amount of staked thAPT
+  # - The total amount of sthAPT issued
+  # We cache these values for later use.
+  - cacheTask:
+      cacheItems:
+        - variableName: STAKED_THAPT
+          job:
+            tasks:
+              - jsonParseTask:
+                  path: $[0]
+        - variableName: TOTAL_STHAPT
+          job:
+            tasks:
+              - jsonParseTask:
+                  path: $[1]
+  # Fetch the USD price of thAPT from Pyth.
+  - httpTask:
+      url: https://hermes.pyth.network/api/latest_price_feeds?ids%5B%5D=0xb29276972267db5d64ae718fb7f107ad9e72a79cabf9992f0e9bc75ad451a7f6
+      method: METHOD_GET
+  - cacheTask:
+      cacheItems:
+        - variableName: THAPT_RAW_PRICE
+          job:
+            tasks:
+              - jsonParseTask:
+                  path: $[0].price.price
+        - variableName: THAPT_EXPONENT
+          job:
+            tasks:
+              - jsonParseTask:
+                  path: $[0].price.expo
+  # Convert the raw price of thAPT fetched above to a
+  # floating value by applying the exponent.
+  - cacheTask:
+      cacheItems:
+        - variableName: THAPT_USD_PRICE
+          job:
+            tasks:
+              - valueTask:
+                  big: ${THAPT_RAW_PRICE}
+              - multiplyTask:
+                  job:
+                    tasks:
+                      - valueTask:
+                          big: "10"
+                      - powTask:
+                          big: ${THAPT_EXPONENT}
+  # Calculate the price of sthAPT in USD by multiplying the
+  # USD price of thAPT by the staked thAPT and dividing by the
+  # total amount of sthAPT issued.
+  - valueTask:
+      big: ${THAPT_USD_PRICE}
+  - multiplyTask:
+      big: ${STAKED_THAPT}
+  - divideTask:
+      big: ${TOTAL_STHAPT}
