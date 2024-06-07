@@ -1,0 +1,26 @@
+# Below is the configuration for a switchboard feed that
+# calculates the price of amAPT.
+#
+# It fetches the thala.fi DEX exchange rate of amAPT to APT
+# then fetches the USD price of APT from Pyth.
+tasks:
+  # Fetch the exchange rate between thAPT and APT
+  # from the thala.fi DEX contract.
+  - httpTask:
+      url: https://api.mainnet.aptoslabs.com/v1/graphql
+      method: METHOD_POST
+      headers:
+        - key: Accept
+          value: application/json
+        - key: Content-Type
+          value: application/json
+      body: '{"query": "query MyQuery { events( where: {transaction_version: {_eq: \"579471884\"}}) { event_index data account_address creation_number indexed_type sequence_number transaction_block_height transaction_version type } } ", "variables": {}, "operationName": "MyQuery"}'
+  - cacheTask:
+      cacheItems:
+        - variableName: AMOUNT
+          job:
+            tasks:
+              - jsonParseTask:
+                  path: $.data.events[0].data.amount
+  - valueTask:
+      big: ${AMOUNT}
