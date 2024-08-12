@@ -1,0 +1,52 @@
+# Below is the configuration for a switchboard feed that
+# calculates the price of sthAPT in USD hosted at:
+#
+# https://app.switchboard.xyz/aptos/mainnet/feed/0xeb7c77987c0fcbabeac1162daad2ca6985d3222594513c13b16907c924b8cf9b
+#
+# It converts the USD price of APT to the USD price of sthAPT
+# using the exchange rate between thAPT and sthAPT and pegging
+# the price of APT to the USD price of thAPT.
+#
+# The thAPT/sthAPT exchange rate is the ratio of all staked thAPT over the
+# all issued sthAPT.
+tasks:
+  # Fetch the exchange rate between thAPT and sthAPT
+  # from the thala.fi taking contract.
+  - httpTask:
+      url: https://api.mainnet.aptoslabs.com/v1/view
+      method: METHOD_POST
+      headers:
+        - key: Accept
+          value: application/json
+        - key: Content-Type
+          value: application/json
+      body: '{"function":
+        "0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::thAPT_sthAPT_exchange_rate_synced",
+        "type_arguments": [], "arguments": [] }'
+  # The function above returns a vector with two elements:
+  # - The amount of staked thAPT
+  # - The total amount of sthAPT issued
+  # We cache these values for later use.
+  - cacheTask:
+      cacheItems:
+        - variableName: STAKED_THAPT
+          job:
+            tasks:
+              - jsonParseTask:
+                  path: $[0]
+        - variableName: TOTAL_STHAPT
+          job:
+            tasks:
+              - jsonParseTask:
+                  path: $[1]
+  # Fetch the USD price of APT from Pyth.
+  - oracleTask:
+      pythAddress:
+        "0x03ae4db29ed4ae33d323568895aa00337e658e348b37509f5372ae51f0af00d5"
+  # Calculate the price of sthAPT in USD by multiplying the
+  # USD price of thAPT by the staked thAPT and dividing by the
+  # total amount of sthAPT issued.
+  - multiplyTask:
+      big: ${STAKED_THAPT}
+  - divideTask:
+      big: ${TOTAL_STHAPT}
