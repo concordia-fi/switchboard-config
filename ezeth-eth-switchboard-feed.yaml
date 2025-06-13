@@ -1,0 +1,14 @@
+# Below is the configuration for a switchboard feed that
+# calculates the conversion rate of ezETH to ETH.
+tasks:
+  # Fetch the exchange rate between thAPT and sthAPT
+  # from the thala.fi taking contract.
+  - httpTask:
+      url: https://mainnet.infura.io/v3/088da269784c4a249220c2b131ef05f3
+      method: METHOD_POST
+      headers:
+        - key: Accept
+          value: application/json
+        - key: Content-Type
+          value: application/json
+      body: '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x387dBc0fB00b26fb085aa658527D5BE98302c84C","data":"0x679aefce"},"latest"],"id":1}'
